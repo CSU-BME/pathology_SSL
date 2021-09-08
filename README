@@ -1,0 +1,206 @@
+The codes of the manuscript “Accurate recognition of colorectal cancer with semi-supervised deep learning on pathological images”, bioRxiv 2020.07.13.201582; doi: https://doi.org/10.1101/2020.07.13.201582
+
+1 Overview
+The machine-assisted recognition of colorectal cancer (CRC) has been mainly focused on supervised deep learning that suffers from a significant bottleneck of requiring massive labeled data. We hypothesize that semi-supervised deep learning leveraging a small number of labeled data can provide a powerful alternative strategy.
+
+We proposed a semi-supervised model based on the mean teacher that provides pathological predictions at both patch-level and patient-level. We demonstrated the general utility of the model utilizing 13,111 CRC whole slide images from 8,803 subjects gathered from 13 centers. We compared our proposed method with the prevailing supervised learning and six pathologists. Two extended evaluations on 1,500 lung and 294,912 lymph node images were also performed to confirm the generality of the model for different cancers.
+
+This code realizes the recognition of three kinds of cancer including CRC, lung cancer (LC25000 dataset) and Lymph Node Metastases (PatchCamelyon dataset).
+
+2 Introduction to the code
+The code is divided into three directories, each used to identify a type of cancer.
+CRC: classification for CRC and normal tissue.
+lung-3class: classification for lung adenocarcinoma, lung squamous cell carcinoma, and benign lung tissue.
+pcam: classification for Lymph Node Metastases and normal tissue.
+
+3 How to use the code
+1.1 system requirements.
+The code can be run on the Ubuntu system, and the servers with an NVIDIA Tesla V00 Graphic Processing Unit, 128 GB memory, and two Intel Xeon Gold 5122 central processing units.
+
+The code is firstly implemented by Tensorflow and Keras library, tested in Python (3.6.9) and Tensorflow (1.15.0), and then revised for more recent Tensorflow (2.3.1) and Python (3.8.10). If your Tensorflow version is inconsistent, perhaps replacing Tensorflow with tensorflow.compat.v1 can solve the error.
+
+1.2 Installation
+1) install the Ubutun system (version 20.4).
+2) install the python (version 3.8.10), which has been included in the ubuntu 20.4
+3) the software requirements.
+tensorflow_gpu==2.3.1
+numpy==1.18.5
+sklearn==0.24.2
+scipy==1.14.0
+
+The install time is about 30 minutes.
+
+1.3 How to run the code
+1) download the data from the links provided by the section 2. Note that the dataset is divided into two types: patch level and patient level.
+2) copy the data to your disk.
+
+1.3.1 Patch-level training and testing.
+The codes is in the CRC(for CRC), lung-3class(for lung datasets) and pcam(for lymph node datasets) directories. The patch-level data is needed.
+3) in train-MT.py
+make sure that the data path is consistent with your disk path.
+
+The hyperparameters has been defined, but maybe you need to modify the settings according to your computer.
+batch_size: image number in one batch
+epochs: total epochs for training.
+steps_per_epoch: steps number per epoch, and the images of batch_size*steps are randomly selected and used for training in one epoch.
+first_epoches: the number of epochs for pre-training.
+validation_steps: steps number for validation set while one epoch is finished. Please make sure steps*batch_size < image number of validation set
+path: the data path, where there are k train, validation, and test files with tfrecord format, default k is 8. Their name are train-subi.tfr, val-subi.tfr, test-subi.tfr: the ith train, val and test data file.
+model_path: model path and model main name.
+fw=open('XXXX.txt','a')   #the outputted file of training results.
+
+4) run train-MT.py, get the SSL model.
+5) run evaluate-MT.py to evaluate the trained SSL model.
+path='XXXXXX'   #dataset path
+model_path='XXXX'   #the model to be evaluated
+fw=open('XXXXX','a')   #the file to save the evaluation results.
+
+6) run train_base.py, get the SL model, similar with train-MT.py.
+7) run evaluate-base.py to evaluate the trained SL model.
+
+1.3.2 Patient-level testing.
+for CRC, the trained model can be used for patient-level testing.
+7) in predict_bigdata_casedirs.py, set the SSL or SL model to be used.
+model = meancher_model()       #SSL
+model=make_model_base(True)   #SL
+
+8) in pipeline_predict.py,
+make sure that the data path of WSIs is consistent with your disk path.
+make sure that the path of real label file is correct.
+input_real_file='XXXXX'
+
+set the model to be used for prediction, its type should be consistent with the setting in predict_bigdata_casedirs.py. The model is from train-MT.py or train_base.py.
+model_path='XXXXX'
+
+set the output path of results.
+output_base_path = 'XXXXX'
+
+run it, get predict labels for the WSIs/subjects
+
+9）in pipeline_statistics.py,
+input_base_path='XXXXXXX'    #the directory including WSIs data, consisting of some subdirectories.
+group_dirs=['XXXXX1','XXXXX2', ....]        #the subdirectories including the data.
+statistics_method='EACH' or 'ALL'      #EACH setting is the evaluation are performed for every subdirectory respectively, but ALL setting for all data included in the subdirectories.
+output_base_path: the output path of results.
+input_real_file: the path of real label file.
+
+1.3.3 additional information.
+The training of the one SSL model takes about 10 hours, SL model 6 hours, depending on your computer and convergence speed.
+The prediction of a WSI is about a few seconds to 2 minutes, depending on the WSI size and computer.
+If your GPU memory is not enough，please decrease the number of patches loaded into GPU at line 52 in predict.bigdata.py.
+test_batch = 2000  #default.
+
+2 Datasets and availability.
+(1) CRC: CRC database built by ourselves
+(2) LC25000: adenocarcinoma, squamous cell carcinoma, and benign tissue.
+Borkowski AA, Bui MM, Thomas LB, Wilson CP, DeLand LA, Mastorides SM. Lung and Colon Cancer Histopathological Image Dataset (LC25000). arXiv:1912.12142v1 [eess.IV], 2019
+(3) PatchCamelyon: https://github.com/basveeling/pcam
+
+Because the datasets (>6TB) are too large, we only uploaded preprocessed tfrecord files of part of the patches for training and testing. At the same time, we also uploaded 500 whole slide images (WSI) of CRCs for patient-level testing.
+
+The minimum datasets (~7GB) of CRC, LC25000 (lung) and PatchCamelyon can be found in the link: https://doi.org/10.6084/m9.figshare.15072546.v1
+
+The more data (~300GB) can be found in the link: https://pan.baidu.com/s/1zJfIBKys0O2ewY6dLs3OkA  Password: k7pp
+
+If you need more data, please contact us.
+
+4 descriptions of code functionality.
+The code in the CRC is used for the training and testing of the CRC model, and the other two directories are used for lung and lymph models.
+In order to facilitate the use of these codes, we use a simple loop to train k models, and evaluate them.
+
+4.1 Preprocessing the data
+(1)  The preprocessing of original image files is required before training. The datasets in above links have included the preprocessed tfrecord files, you can ignore this step. The preprocessing includes splitting datasets and preparing the tfrecord files of data. The following python codes need to be run in order. Before run them, please make sure the path of data is correct.
+
+create_dataset.py: preprocessing original images if need. For pcam, the image files are extracts from the hdf5 file of PatchCamelyon dataset.
+split_dataset.py: split training, validation and testing datasets and create k datasets for k-fold cross-validation.
+sub_createtfrecord.py: convert the images files in datasets to tfrecord format.
+
+4.2 semi-supervised learning
+(1) train-MT.py
+semi-supervised training. After run it, you can get k models, default k is 8. This code trains k patch-level models on k datasets. The model is defined in models.py.
+
+For the training of each model, the functionality is described as follows.
+a) read the data from tfrecord files, and create training and validation sets.
+b) get a batch from dataset, half of labeled patches and half of unlabeled patches.
+c) the student network predicts labels, and the teacher network predicts pseudo labels for unlabeled patches.
+d) calculate the loss of predicted labels and real or pseudo labels, and update student network.
+e) if the epoch is finished, update teacher network.
+f) If the number of epochs reaches the preset number, or the early stopping condition is met, the training is finished.
+
+(2) evaluate-MT.py:
+evaluate obtained semi-supervised models, and get accuracy, AUC of models on testing sets. Before run, please make sure the data path and the model path are correct.
+path=data path including tfrecord file of testing set.
+model_path: model path and model main name.
+fw=open('XXXX.txt','a')  #the outputted file of results.
+
+4.3 Supervised learning
+There are two versions of supervised learning codes, here is implemented with Keras library. Another version is implemented with SLIM library, please see the link: https://github.com/CSU-BME/DeepPathology-CRC. 
+(1) train_base.py:
+supervised training. after run it, get k models, default k is 8.
+batch_size, learning rate, epochs are similar with those in train-MT.py.
+
+This code trains k patch-level models on k datasets. The model is defined in utils_base.py.
+For the training of each model, the functionality is described as follows.
+1) an inception v3 model is trained, and it is initialized by pretrained model.
+2) get a batch from training set, all patches are labeled.
+3) the model predicts labels for the patches, and calculate the loss of predicted labels and real labels.
+4) If the number of cycles reaches the preset number, or the early stopping condition is met, the training is finished.
+
+(2) evalute-base.py:
+evaluate supervised models, the sets are similar with evaluate-MT.py
+
+4.4 Patient prediction
+These codes come from our last project: https://github.com/CSU-BME/DeepPathology-CRC.
+CRC/predict: Patient-level prediction on CRC WSIs. Before run them, please make sure the data path, model path is correct.
+pipeline_predict: the pipeline of patient-level prediction.
+pipeline_statistics: the statistical analysis on prediction for sensitivity, specificity, accuracy and AUC.
+
+5 Demo
+In demo directory, the demo.py and demo_patient.py are provided for CRC patch-level and patient-level prediction.
+
+Before run them, please download the pretrained models and evaluated data from the link: https://pan.baidu.com/s/1zJfIBKys0O2ewY6dLs3OkA  Password: k7pp
+
+#demo.py for patch-level AUC evaluation on Dataset-PATT and Dataset-PAT
+download demo/pre-models/*.hdf5 from the above link, copy them to demo/pre-models.
+download demo/data/*tfr, and copy them to demo/data
+run demo.py
+
+The evaluation may take about 30 minutes. The expected output is similar to the following.
+[('Model-5%-SSL.hdf5', 0.939), ('Model-10%-SSL.hdf5', 0.988),('Model-5%-SL.hdf5', 0.789),('Model-10%-SL.hdf5', 0.963)]
+[('Model-5%-SSL.hdf5', 0.972), ('Model-10%-SSL.hdf5', 0.980), ('Model-5%-SL.hdf5', 0.851), ('Model-10%-SL.hdf5', 0.938)]
+
+#demo_patient.py for patient-level prediction
+download CRC_WSIs/* from the above link, and copy them to demo/WSI_data
+run demo_patient.py    for prediction
+run demo_statistics.py  for output of sensitivity, specificity and AUC
+
+The expected output is similar to the following.
+This is xiangya statistics results
+begin *******4 patches results **********
+pos count: 210, wrong pos count: 0; neg count: 130, wrong neg count: 9
+accuracy, sensitivity, specificity: 0.9735, 1.0000, 0.9308
+AUC: 0.9654
+end ********4 patches results **********
+
+The evaluation of one model may take about 15 hours.
+
+6 licenses
+Copyright (C) <2021>  <Gang Yu of author>
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+If you have any questions on the code, please contact us, nettemplar@163.com.
+
+
+
